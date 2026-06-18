@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ο Καιρός στην Ελλάδα - Διαδραστικές Κάρτες</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2 family=Comfortaa:wght@500;700&family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background 0.3s ease;
+        }
+        
+        .brand-font {
+            font-family: 'Comfortaa', sans-serif;
+        }
+
+        /* 3D Card Flip CSS */
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+        
+        .preserve-3d {
+            transform-style: preserve-3d;
+        }
+        
+        .backface-hidden {
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+        
+        .rotate-y-180 {
+            transform: rotateY(180deg);
+        }
+
+        /* CRITICAL FIX: Add CSS behavior for the flipped state */
+        #flashcard.flipped {
+            transform: rotateY(180deg);
+        }
+
+        /* Custom Scrollbar for pills */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body id="app-body" class="bg-gradient-to-br from-slate-50 to-amber-50/40 min-h-screen flex flex-col text-slate-800">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-100 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-4xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div id="header-icon-container" class="bg-amber-600 text-white p-2.5 rounded-2xl shadow-md transition-colors duration-300">
+                    <i id="header-icon" data-lucide="thermometer" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight brand-font text-slate-900">Ενότητα 8: Ο Καιρός στην Ελλάδα</h1>
+                    <p class="text-xs text-slate-500 font-medium">Διαδραστικές κάρτες εκμάθησης, Αγαπημένα & Quiz</p>
+                </div>
+            </div>
+            <!-- Global Stats -->
+            <div class="flex items-center gap-4 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100 w-full sm:w-auto justify-between">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-500"></i>
+                    <div class="text-left">
+                        <span class="block text-[10px] text-slate-400 font-bold uppercase">Μαθεμένες λέξεις</span>
+                        <span id="global-progress" class="text-sm font-bold text-slate-700">0 / 0</span>
+                    </div>
+                </div>
+                <button onclick="openResetModal()" class="text-xs text-rose-500 hover:text-rose-600 font-semibold flex items-center gap-1 transition" title="Μηδενισμός Προόδου">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Επαναφορά
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Section -->
+    <main class="flex-grow max-w-4xl w-full mx-auto px-4 py-6 flex flex-col space-y-6">
+        
+        <!-- Location Tabs with grid adjustments for 6 items -->
+        <nav class="grid grid-cols-3 md:grid-cols-6 gap-2 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100">
+            <button onclick="changeLocation('climate')" id="tab-climate" class="tab-btn active flex items-center justify-center gap-1.5 py-3 px-1 rounded-xl text-xs sm:text-sm font-bold transition duration-200">
+                <span>🌡️</span> Κλίμα
+            </button>
+            <button onclick="changeLocation('phenomena')" id="tab-phenomena" class="tab-btn flex items-center justify-center gap-1.5 py-3 px-1 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 transition duration-200">
+                <span>⛈️</span> Φαινόμενα
+            </button>
+            <button onclick="changeLocation('description')" id="tab-description" class="tab-btn flex items-center justify-center gap-1.5 py-3 px-1 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 transition duration-200">
+                <span>☁️</span> Χαρακτηρισμός
+            </button>
+            <button onclick="changeLocation('verbs_winds')" id="tab-verbs_winds" class="tab-btn flex items-center justify-center gap-1.5 py-3 px-1 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 transition duration-200">
+                <span>⚡</span> Ρήματα & Άνεμοι
+            </button>
+            <button onclick="changeLocation('forecast')" id="tab-forecast" class="tab-btn flex items-center justify-center gap-1.5 py-3 px-1 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 transition duration-200">
+                <span>🔮</span> Πρόγνωση
+            </button>
+            <button onclick="changeLocation('favorites')" id="tab-favorites" class="tab-btn flex items-center justify-center gap-1.5 py-3 px-1 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 transition duration-200">
+                <span>⭐</span> Αγαπημένα
+            </button>
+        </nav>
+
+        <!-- Dynamic Category Filter Pills -->
+        <div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar" id="subcategory-pills">
+            <!-- Populated Dynamically -->
+        </div>
+
+        <!-- Mode Select (Cards / Quiz) -->
+        <div class="flex justify-center bg-slate-200/60 p-1 rounded-xl max-w-xs mx-auto w-full">
+            <button onclick="setMode('cards')" id="mode-cards" class="flex-1 py-1.5 px-4 text-xs font-bold rounded-lg transition duration-200 bg-white text-slate-800 shadow-sm flex items-center justify-center gap-1.5">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i> Κάρτες
+            </button>
+            <button onclick="setMode('quiz')" id="mode-quiz" class="flex-1 py-1.5 px-4 text-xs font-semibold rounded-lg transition duration-200 text-slate-600 hover:text-slate-800 flex items-center justify-center gap-1.5">
+                <i data-lucide="help-circle" class="w-3.5 h-3.5"></i> Παιχνίδι (Quiz)
+            </button>
+        </div>
+
+        <!-- 1. CARDS INTERACTIVE MODE -->
+        <section id="cards-workspace" class="flex flex-col items-center justify-center py-4 space-y-6">
+            
+            <!-- Active Flashcard -->
+            <div class="w-full max-w-md perspective-1000">
+                <div id="flashcard" onclick="flipCard()" class="preserve-3d relative w-full h-72 cursor-pointer transition-transform duration-500 ease-out transform bg-transparent">
+                    
+                    <!-- Front Side (Greek) -->
+                    <div id="flashcard-front" class="backface-hidden absolute inset-0 w-full h-full bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50 flex flex-col justify-between p-6 overflow-hidden transition-all duration-300">
+                        <!-- Top Bar -->
+                        <div class="flex justify-between items-center text-slate-400">
+                            <span id="card-tag-front" class="text-xs font-bold uppercase tracking-wider bg-white/70 text-slate-600 px-3 py-1 rounded-full border border-black/5">Κατηγορία</span>
+                            <div class="flex items-center gap-3">
+                                <!-- CRITICAL FIX: Custom inline SVG Star to bypass Lucide's hardcoded fill issues -->
+                                <button onclick="toggleStar(event)" class="transition transform hover:scale-110 active:scale-95" title="Προσθήκη στα Αγαπημένα">
+                                    <span id="star-container-front"></span>
+                                </button>
+                                <span class="text-xs font-semibold">Ελληνικά</span>
+                                <span id="front-indicator-dot" class="w-2.5 h-2.5 rounded-full bg-amber-500 transition-colors duration-300"></span>
+                            </div>
+                        </div>
+
+                        <!-- Main Content -->
+                        <div class="text-center space-y-4">
+                            <h2 id="card-greek" class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight transition-all duration-300 max-h-24 overflow-y-auto px-2">μήλο</h2>
+                            <button id="speak-btn" onclick="speakGreek(event)" class="inline-flex items-center justify-center p-3.5 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-full transition shadow-sm" title="Ακούστε την προφορά">
+                                <i data-lucide="volume-2" class="w-6 h-6"></i>
+                            </button>
+                        </div>
+
+                        <!-- Footer Info -->
+                        <div class="flex justify-between items-center text-xs text-slate-400 border-t border-black/5 pt-4">
+                            <span class="flex items-center gap-1"><i data-lucide="info" class="w-3.5 h-3.5"></i> Κάντε κλικ για μετάφραση</span>
+                            <span id="card-index-front" class="font-bold">1 / 10</span>
+                        </div>
+                    </div>
+
+                    <!-- Back Side (English) -->
+                    <div id="flashcard-back" class="backface-hidden rotate-y-180 absolute inset-0 w-full h-full bg-slate-900 text-white rounded-3xl shadow-xl shadow-slate-900/20 flex flex-col justify-between p-6 overflow-hidden transition-all duration-300">
+                        <!-- Top Bar -->
+                        <div class="flex justify-between items-center text-slate-400">
+                            <span id="card-tag-back" class="text-xs font-bold uppercase tracking-wider bg-black/30 text-slate-200 px-3 py-1 rounded-full border border-white/5">Κατηγορία</span>
+                            <div class="flex items-center gap-3">
+                                <button onclick="toggleStar(event)" class="transition transform hover:scale-110 active:scale-95" title="Προσθήκη στα Αγαπημένα">
+                                    <span id="star-container-back"></span>
+                                </button>
+                                <span class="text-xs font-medium text-slate-300">Αγγλικά</span>
+                                <span id="back-indicator-dot" class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                            </div>
+                        </div>
+
+                        <!-- Main Content -->
+                        <div class="text-center px-2">
+                            <h2 id="card-english" class="text-2xl sm:text-3xl font-extrabold text-amber-300 tracking-tight max-h-28 overflow-y-auto">apple</h2>
+                        </div>
+
+                        <!-- Footer Info -->
+                        <div class="flex justify-between items-center text-xs text-slate-300/70 border-t border-white/10 pt-4">
+                            <span class="flex items-center gap-1"><i data-lucide="rotate-3d" class="w-3.5 h-3.5"></i> Κάντε κλικ για επαναφορά</span>
+                            <span id="card-index-back" class="font-bold">1 / 10</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Card Controls -->
+            <div class="flex items-center justify-center gap-4 w-full max-w-xs">
+                <button onclick="prevCard()" class="p-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-2xl transition shadow-sm hover:scale-105 active:scale-95" title="Προηγούμενη">
+                    <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                </button>
+                
+                <button onclick="toggleMastered()" id="mastered-btn" class="flex-grow py-3 px-4 bg-amber-50 text-amber-700 border border-amber-100 hover:bg-amber-100/80 rounded-2xl transition shadow-sm font-bold text-sm flex items-center justify-center gap-2">
+                    <i data-lucide="check" class="w-4 h-4"></i>
+                    <span>Το Έμαθα!</span>
+                </button>
+
+                <button onclick="nextCard()" class="p-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-2xl transition shadow-sm hover:scale-105 active:scale-95" title="Επόμενη">
+                    <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Extra Helper Settings -->
+            <div class="flex items-center gap-4 text-xs font-semibold text-slate-500">
+                <button onclick="shuffleCards()" class="flex items-center gap-1 hover:text-slate-800 transition">
+                    <i data-lucide="shuffle" class="w-3.5 h-3.5"></i> Ανακάτεμα
+                </button>
+                <span class="text-slate-300">|</span>
+                <label class="flex items-center gap-2 cursor-pointer hover:text-slate-800 transition">
+                    <input type="checkbox" id="auto-speak" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                    Αυτόματη προφορά λέξης
+                </label>
+            </div>
+
+        </section>
+
+        <!-- 2. QUIZ MODE -->
+        <section id="quiz-workspace" class="hidden flex-col items-center py-4 space-y-6">
+            
+            <div class="w-full max-w-md bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50 space-y-6" id="quiz-card">
+                
+                <!-- Progress Header -->
+                <div class="flex justify-between items-center border-b border-slate-50 pb-4">
+                    <span id="quiz-progress-label" class="text-xs font-bold uppercase">Ερώτηση 1 από 5</span>
+                    <span id="quiz-score-label" class="text-xs font-bold bg-slate-100 text-slate-700 px-3 py-1 rounded-full">Σκορ: 0%</span>
+                </div>
+
+                <!-- Question -->
+                <div class="text-center py-4 space-y-2">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block">Ποια είναι η σωστή μετάφραση;</span>
+                    <h3 id="quiz-question-word" class="text-3xl font-extrabold text-slate-950">ντομάτα</h3>
+                </div>
+
+                <!-- Multiple Choices -->
+                <div class="grid grid-cols-1 gap-3" id="quiz-options">
+                    <!-- Dynamic Option Buttons -->
+                </div>
+
+                <!-- Feedback Display -->
+                <div id="quiz-feedback" class="p-4 rounded-2xl hidden text-sm font-medium flex items-center gap-3">
+                    <!-- Dynamic feedback icon & message -->
+                </div>
+
+                <!-- Quiz Next Button -->
+                <button onclick="nextQuizQuestion()" id="quiz-next-btn" class="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl transition shadow-md hidden flex items-center justify-center gap-2">
+                    Επόμενη Ερώτηση <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </button>
+
+            </div>
+
+            <!-- Quiz End State -->
+            <div class="w-full max-w-md bg-white p-8 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50 text-center space-y-6 hidden" id="quiz-results">
+                <div id="quiz-trophy-container" class="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                    <i data-lucide="trophy" class="w-10 h-10"></i>
+                </div>
+                <div class="space-y-1">
+                    <h3 class="text-2xl font-bold text-slate-800">Συγχαρητήρια!</h3>
+                    <p class="text-sm text-slate-400 font-medium">Ολοκληρώσατε το quiz για την επιλεγμένη κατηγορία.</p>
+                </div>
+                <div class="bg-slate-50 p-5 rounded-2xl max-w-xs mx-auto border border-slate-100">
+                    <span class="block text-xs text-slate-400 font-bold uppercase tracking-wider">Τελικό Σκορ</span>
+                    <span id="quiz-final-score" class="text-4xl font-black block mt-1">4 / 5</span>
+                </div>
+                <button id="quiz-replay-btn" onclick="restartQuiz()" class="w-full max-w-xs py-3.5 text-white font-bold rounded-2xl transition shadow-md">
+                    Παίξτε Ξανά
+                </button>
+            </div>
+
+        </section>
+
+        <!-- Words List View / Quick Reference -->
+        <section class="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-slate-800 flex items-center gap-2 text-sm sm:text-base">
+                    <i data-lucide="list-collapse" id="vocabulary-list-icon" class="text-amber-600"></i>
+                    <span>Όλες οι λέξεις αυτής της κατηγορίας</span>
+                </h3>
+                <span id="active-category-count" class="text-xs font-bold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-lg">0 λέξεις</span>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-80 overflow-y-auto pr-1" id="full-vocabulary-list">
+                <!-- Populate list -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Confirm Dialog Overlay (Aesthetic confirmation avoiding native prompt) -->
+    <div id="confirm-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white p-6 rounded-3xl max-w-sm w-full space-y-4 shadow-2xl border border-slate-100 text-center">
+            <div class="w-12 h-12 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto">
+                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+            </div>
+            <div class="space-y-1">
+                <h3 class="font-bold text-slate-800 text-lg">Επαναφορά προόδου;</h3>
+                <p class="text-xs text-slate-400 font-medium">Είστε σίγουροι ότι θέλετε να μηδενίσετε την πρόοδό σας (μαθεμένες & αγαπημένες λέξεις);</p>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="closeResetModal()" class="flex-1 py-2.5 text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition rounded-xl">Άκυρο</button>
+                <button onclick="confirmResetProgress()" class="flex-1 py-2.5 text-xs font-bold bg-rose-500 text-white hover:bg-rose-600 transition rounded-xl">Επαναφορά</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-100 mt-auto py-6">
+        <div class="max-w-4xl mx-auto px-4 text-center text-xs text-slate-400 space-y-1 font-medium">
+            <p>Ο Καιρός στην Ελλάδα - Διαδραστικές Κάρτες Εκμάθησης</p>
+            <p class="text-[10px]">Σχεδιασμένο για εύκολη χρήση εκτός σύνδεσης</p>
+        </div>
+    </footer>
+
+
+    <script>
+        // ----------------------------------------------------
+        // VOCABULARY DATA
+        // ----------------------------------------------------
+        const vocabulary = {
+            climate: {
+                title: "Κλίμα",
+                pills: ["all", "basics", "temp", "seasons"],
+                pillsLabels: { all: "🌡️ Όλα", basics: "ℹ️ Βασικά", temp: "🥵 Θερμοκρασία", seasons: "☀️ Κλίμα" },
+                items: [
+                    { gr: "ο καιρός", en: "weather", cat: "basics" },
+                    { gr: "η θερμοκρασία", en: "temperature", cat: "basics" },
+                    { gr: "ο μετεωρολόγος", en: "meteorologist", cat: "basics" },
+                    { gr: "το δελτίο καιρού", en: "weather forecast", cat: "basics" },
+                    { gr: "ζέστη", en: "heat", cat: "temp" },
+                    { gr: "καύσωνας", en: "heatwave", cat: "temp" },
+                    { gr: "κρύο", en: "cold", cat: "temp" },
+                    { gr: "ψύχρα", en: "chill / cool weather", cat: "temp" },
+                    { gr: "δροσιά", en: "coolness", cat: "temp" },
+                    { gr: "παγωνιά", en: "frost / freezing cold", cat: "temp" },
+                    { gr: "καλοκαίρι", en: "summer", cat: "seasons" },
+                    { gr: "η θερμοκρασία ανεβαίνει", en: "the temperature rises", cat: "temp" },
+                    { gr: "η θερμοκρασία πέφτει", en: "the temperature falls", cat: "temp" },
+                    { gr: "θα φτάσει τους 18°C", en: "will reach 18°C", cat: "temp" },
+                    { gr: "θα φτάσει τους -5°C", en: "will reach -5°C", cat: "temp" }
+                ]
+            },
+            phenomena: {
+                title: "Φαινόμενα",
+                pills: ["all", "sky", "wind", "precipitation", "other_phenomena"],
+                pillsLabels: { all: "⛈️ Όλα", sky: "☀️ Ουρανός", wind: "💨 Άνεμος", precipitation: "🌧️ Υετός", other_phenomena: "🌫️ Άλλα" },
+                items: [
+                    { gr: "ήλιος", en: "sun", cat: "sky" },
+                    { gr: "λιακάδα", en: "sunshine", cat: "sky" },
+                    { gr: "αέρας", en: "air", cat: "wind" },
+                    { gr: "άνεμος", en: "wind", cat: "wind" },
+                    { gr: "συννεφιά", en: "cloudiness", cat: "sky" },
+                    { gr: "σύννεφα", en: "clouds", cat: "sky" },
+                    { gr: "βροχή", en: "rain", cat: "precipitation" },
+                    { gr: "καταιγίδα", en: "storm", cat: "precipitation" },
+                    { gr: "χιόνι", en: "snow", cat: "precipitation" },
+                    { gr: "χιονόνερο", en: "sleet", cat: "precipitation" },
+                    { gr: "χαλάζι", en: "hail", cat: "precipitation" },
+                    { gr: "ομίχλη", en: "fog", cat: "other_phenomena" },
+                    { gr: "υγρασία", en: "humidity", cat: "other_phenomena" }
+                ]
+            },
+            description: {
+                title: "Χαρακτηρισμός",
+                pills: ["all", "good", "bad", "neutral"],
+                pillsLabels: { all: "☁️ Όλα", good: "😊 Καλός", bad: "😢 Άσχημος", neutral: "⚖️ Ήπιος" },
+                items: [
+                    { gr: "καλός καιρός", en: "good weather", cat: "good" },
+                    { gr: "άσχημος καιρός", en: "bad weather", cat: "bad" },
+                    { gr: "καλοκαιρία", en: "fine weather", cat: "good" },
+                    { gr: "κακοκαιρία", en: "bad weather conditions", cat: "bad" },
+                    { gr: "ήπιος", en: "mild", cat: "neutral" },
+                    { gr: "αίθριος", en: "clear", cat: "good" },
+                    { gr: "άστατος", en: "unsettled", cat: "neutral" },
+                    { gr: "βροχερός", en: "rainy", cat: "bad" },
+                    { gr: "ωραίος", en: "pleasant", cat: "good" },
+                    { gr: "άσχημος", en: "unpleasant", cat: "bad" }
+                ]
+            },
+            verbs_winds: {
+                title: "Ρήματα & Άνεμοι",
+                pills: ["all", "verbs", "winds", "directions"],
+                pillsLabels: { all: "⚡ Όλα", verbs: "⚙️ Ρήματα", winds: "💨 Άνεμοι", directions: "🧭 Κατευθύνσεις" },
+                items: [
+                    { gr: "βρέχει", en: "it is raining", cat: "verbs" },
+                    { gr: "ψιλοβρέχει", en: "it is drizzling lightly", cat: "verbs" },
+                    { gr: "ψιχαλίζει", en: "it is sprinkling", cat: "verbs" },
+                    { gr: "χιονίζει", en: "it is snowing", cat: "verbs" },
+                    { gr: "ρίχνει χιόνι", en: "snow is falling", cat: "verbs" },
+                    { gr: "ρίχνει χαλάζι", en: "hail is falling", cat: "verbs" },
+                    { gr: "φυσάει", en: "it is windy / the wind is blowing", cat: "verbs" },
+                    { gr: "αστράφτει", en: "there is lightning", cat: "verbs" },
+                    { gr: "βροντάει", en: "it is thundering", cat: "verbs" },
+                    { gr: "μπουμπουνίζει", en: "it is thundering", cat: "verbs" },
+                    { gr: "έχει αστραπές και βροντές", en: "there is thunder and lightning", cat: "verbs" },
+                    { gr: "βόρειος άνεμος", en: "north wind", cat: "directions" },
+                    { gr: "νότιος άνεμος", en: "south wind", cat: "directions" },
+                    { gr: "ανατολικός άνεμος", en: "east wind", cat: "directions" },
+                    { gr: "δυτικός άνεμος", en: "west wind", cat: "directions" },
+                    { gr: "βοριάς", en: "northerly wind", cat: "winds" },
+                    { gr: "νοτιάς", en: "southerly wind", cat: "winds" },
+                    { gr: "5 μποφόρ", en: "force 5 Beaufort", cat: "winds" },
+                    { gr: "9 μποφόρ", en: "force 9 Beaufort", cat: "winds" },
+                    { gr: "ισχυροί βόρειοι άνεμοι", en: "strong northerly winds", cat: "winds" }
+                ]
+            },
+            forecast: {
+                title: "Πρόγνωση",
+                pills: ["all", "temp_forecast", "condition_forecast", "changes"],
+                pillsLabels: { all: "🔮 Όλα", temp_forecast: "🌡️ Θερμοκρασία", condition_forecast: "🌦️ Φαινόμενα", changes: "🔄 Μεταβολές" },
+                items: [
+                    { gr: "Θα κάνει ζέστη.", en: "It will be hot.", cat: "temp_forecast" },
+                    { gr: "Θα κάνει κρύο.", en: "It will be cold.", cat: "temp_forecast" },
+                    { gr: "Θα έχει ήλιο.", en: "It will be sunny.", cat: "condition_forecast" },
+                    { gr: "Θα έχει συννεφιά.", en: "It will be cloudy.", cat: "condition_forecast" },
+                    { gr: "Ο καιρός θα είναι ήπιος.", en: "The weather will be mild.", cat: "condition_forecast" },
+                    { gr: "Ο καιρός θα φτιάξει.", en: "The weather will improve.", cat: "changes" },
+                    { gr: "Ο καιρός θα χαλάσει.", en: "The weather will get worse.", cat: "changes" }
+                ]
+            },
+            favorites: {
+                title: "Αγαπημένα",
+                pills: ["all", "climate", "phenomena", "description", "verbs_winds", "forecast"],
+                pillsLabels: { all: "⭐ Όλα", climate: "🌡️ Κλίμα", phenomena: "⛈️ Φαινόμενα", description: "☁️ Χαρακτηρισμός", verbs_winds: "⚡ Ρήματα", forecast: "🔮 Πρόγνωση" },
+                items: [] // Compiled dynamically
+            }
+        };
+
+        // ----------------------------------------------------
+        // THEME CONFIGURATION (Unified Visuals per Category)
+        // ----------------------------------------------------
+        const themes = {
+            climate: {
+                accent: "amber",
+                bgGradient: "from-slate-50 to-amber-50/40",
+                primaryBtn: "bg-amber-500 hover:bg-amber-600 text-white shadow-amber-200",
+                cardFront: "bg-gradient-to-br from-amber-50 to-amber-100/50 border-amber-200 text-amber-950",
+                cardBack: "bg-gradient-to-br from-amber-800 to-amber-950 text-white",
+                textLight: "text-amber-600",
+                bgLight: "bg-amber-50",
+                bgLightHover: "hover:bg-amber-100",
+                textDeep: "text-amber-950",
+                textMuted: "text-amber-500",
+                icon: "thermometer"
+            },
+            phenomena: {
+                accent: "sky",
+                bgGradient: "from-slate-50 to-sky-50/40",
+                primaryBtn: "bg-sky-500 hover:bg-sky-600 text-white shadow-sky-200",
+                cardFront: "bg-gradient-to-br from-sky-50 to-sky-100/50 border-sky-200 text-sky-950",
+                cardBack: "bg-gradient-to-br from-sky-800 to-sky-950 text-white",
+                textLight: "text-sky-600",
+                bgLight: "bg-sky-50",
+                bgLightHover: "hover:bg-sky-100",
+                textDeep: "text-sky-950",
+                textMuted: "text-sky-500",
+                icon: "cloud-lightning"
+            },
+            description: {
+                accent: "emerald",
+                bgGradient: "from-slate-50 to-emerald-50/40",
+                primaryBtn: "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-200",
+                cardFront: "bg-gradient-to-br from-emerald-50 to-emerald-100/50 border-emerald-200 text-emerald-950",
+                cardBack: "bg-gradient-to-br from-emerald-800 to-emerald-950 text-white",
+                textLight: "text-emerald-600",
+                bgLight: "bg-emerald-50",
+                bgLightHover: "hover:bg-emerald-100",
+                textDeep: "text-emerald-950",
+                textMuted: "text-emerald-500",
+                icon: "cloud"
+            },
+            verbs_winds: {
+                accent: "indigo",
+                bgGradient: "from-slate-50 to-indigo-50/40",
+                primaryBtn: "bg-indigo-500 hover:bg-indigo-600 text-white shadow-indigo-200",
+                cardFront: "bg-gradient-to-br from-indigo-50 to-indigo-100/50 border-indigo-200 text-indigo-950",
+                cardBack: "bg-gradient-to-br from-indigo-800 to-indigo-950 text-white",
+                textLight: "text-indigo-600",
+                bgLight: "bg-indigo-50",
+                bgLightHover: "hover:bg-indigo-100",
+                textDeep: "text-indigo-950",
+                textMuted: "text-indigo-500",
+                icon: "wind"
+            },
+            forecast: {
+                accent: "rose",
+                bgGradient: "from-slate-50 to-rose-50/40",
+                primaryBtn: "bg-rose-500 hover:bg-rose-600 text-white shadow-rose-200",
+                cardFront: "bg-gradient-to-br from-rose-50 to-rose-100/50 border-rose-200 text-rose-950",
+                cardBack: "bg-gradient-to-br from-rose-800 to-rose-950 text-white",
+                textLight: "text-rose-600",
+                bgLight: "bg-rose-50",
+                bgLightHover: "hover:bg-rose-100",
+                textDeep: "text-rose-950",
+                textMuted: "text-rose-500",
+                icon: "crystal-ball"
+            },
+            favorites: {
+                accent: "violet",
+                bgGradient: "from-slate-50 to-violet-50/40",
+                primaryBtn: "bg-violet-500 hover:bg-violet-600 text-white shadow-violet-200",
+                cardFront: "bg-gradient-to-br from-violet-50 to-violet-100/50 border-violet-200 text-violet-950",
+                cardBack: "bg-gradient-to-br from-violet-800 to-violet-950 text-white",
+                textLight: "text-violet-600",
+                bgLight: "bg-violet-50",
+                bgLightHover: "hover:bg-violet-100",
+                textDeep: "text-violet-950",
+                textMuted: "text-violet-500",
+                icon: "star"
+            }
+        };
+
+        // ----------------------------------------------------
+        // SYSTEM STATE
+        // ----------------------------------------------------
+        let currentLoc = 'climate';
+        let currentPill = 'all';
+        let activeDeck = [];
+        let currentCardIndex = 0;
+        let activeMode = 'cards'; 
+        let masteredWords = new Set(); 
+        let starredWords = new Set(); // Favorites Storage
+
+        // Quiz State
+        let quizIndex = 0;
+        let quizScore = 0;
+        let quizQuestionsList = [];
+
+        // ----------------------------------------------------
+        // LOCAL STORAGE PROGRESS TRACKING
+        // ----------------------------------------------------
+        function saveProgress() {
+            localStorage.setItem('greek_weather_mastered', JSON.stringify([...masteredWords]));
+            localStorage.setItem('greek_weather_starred', JSON.stringify([...starredWords]));
+            updateGlobalProgress();
+        }
+
+        function loadProgress() {
+            const storedMastered = localStorage.getItem('greek_weather_mastered');
+            if (storedMastered) {
+                masteredWords = new Set(JSON.parse(storedMastered));
+            }
+            const storedStarred = localStorage.getItem('greek_weather_starred');
+            if (storedStarred) {
+                starredWords = new Set(JSON.parse(storedStarred));
+            }
+        }
+
+        // Custom overlay confirm controls instead of window.confirm
+        function openResetModal() {
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        }
+
+        function closeResetModal() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+        }
+
+        function confirmResetProgress() {
+            masteredWords.clear();
+            starredWords.clear();
+            saveProgress();
+            updateActiveDeck();
+            applyTheme();
+            closeResetModal();
+        }
+
+        function updateGlobalProgress() {
+            let totalWordsCount = 0;
+            Object.keys(vocabulary).forEach(loc => {
+                if (loc !== 'favorites') {
+                    totalWordsCount += vocabulary[loc].items.length;
+                }
+            });
+            
+            document.getElementById('global-progress').innerText = `${masteredWords.size} / ${totalWordsCount}`;
+        }
+
+        // ----------------------------------------------------
+        // THEME & STYLING CONTROLLER
+        // ----------------------------------------------------
+        function applyTheme() {
+            const theme = themes[currentLoc];
+            
+            // 1. Body Background
+            const body = document.getElementById('app-body');
+            body.className = `bg-gradient-to-br ${theme.bgGradient} min-h-screen flex flex-col text-slate-800`;
+
+            // 2. Header Icon
+            const iconContainer = document.getElementById('header-icon-container');
+            iconContainer.className = `${theme.primaryBtn} p-2.5 rounded-2xl shadow-md transition-all duration-300`;
+            
+            const iconEl = document.getElementById('header-icon');
+            if (currentLoc === 'forecast') {
+                iconEl.setAttribute('data-lucide', 'sparkles'); // Replacement for crystal ball
+            } else {
+                iconEl.setAttribute('data-lucide', theme.icon);
+            }
+
+            // 3. Dynamic Flashcard CSS
+            const cardFrontEl = document.getElementById('flashcard-front');
+            cardFrontEl.className = `backface-hidden absolute inset-0 w-full h-full rounded-3xl border flex flex-col justify-between p-6 overflow-hidden shadow-xl shadow-slate-200/50 transition-all duration-300 ${theme.cardFront}`;
+
+            const cardBackEl = document.getElementById('flashcard-back');
+            cardBackEl.className = `backface-hidden rotate-y-180 absolute inset-0 w-full h-full rounded-3xl shadow-xl shadow-slate-900/20 flex flex-col justify-between p-6 overflow-hidden transition-all duration-300 ${theme.cardBack}`;
+
+            // 4. Indicating Dot Accent Color
+            const frontDot = document.getElementById('front-indicator-dot');
+            const accentBgMap = {
+                amber: "bg-amber-500",
+                sky: "bg-sky-500",
+                emerald: "bg-emerald-500",
+                indigo: "bg-indigo-500",
+                rose: "bg-rose-500",
+                violet: "bg-violet-500"
+            };
+            frontDot.className = `w-2.5 h-2.5 rounded-full ${accentBgMap[theme.accent]} transition-colors duration-300`;
+
+            // 5. Title Tone
+            const cardTitle = document.getElementById('card-greek');
+            cardTitle.className = `text-2xl sm:text-3xl font-extrabold tracking-tight transition-colors duration-300 ${theme.textDeep}`;
+
+            // 6. Speak Button Accent
+            const speakBtn = document.getElementById('speak-btn');
+            speakBtn.className = `inline-flex items-center justify-center p-3.5 ${theme.bgLight} ${theme.bgLightHover} ${theme.textLight} rounded-full transition shadow-sm duration-300`;
+
+            // 7. Footer Decorative Icons
+            const listIcon = document.getElementById('vocabulary-list-icon');
+            listIcon.className = `transition-colors duration-300 ${theme.textLight}`;
+
+            // 8. Refresh Lucide Icons
+            lucide.createIcons();
+        }
+
+        // ----------------------------------------------------
+        // NAVIGATION & TAB UPDATES
+        // ----------------------------------------------------
+        function changeLocation(locKey) {
+            currentLoc = locKey;
+            currentPill = 'all';
+
+            // Reset tabs
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.className = "tab-btn flex items-center justify-center gap-1.5 py-3 px-1 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 transition duration-200";
+            });
+
+            // Set active class with styled properties
+            const theme = themes[locKey];
+            const activeBtn = document.getElementById(`tab-${locKey}`);
+            activeBtn.className = `tab-btn active flex items-center justify-center gap-1.5 py-3 px-1 rounded-xl text-xs sm:text-sm font-bold transition duration-200 ${theme.primaryBtn}`;
+
+            buildSubcategoryPills();
+            updateActiveDeck();
+            applyTheme();
+            
+            if (activeMode === 'quiz') {
+                initQuiz();
+            }
+        }
+
+        function changeSubcategory(pillKey) {
+            currentPill = pillKey;
+            buildSubcategoryPills();
+            updateActiveDeck();
+
+            if (activeMode === 'quiz') {
+                initQuiz();
+            }
+        }
+
+        function buildSubcategoryPills() {
+            const container = document.getElementById('subcategory-pills');
+            container.innerHTML = '';
+
+            const locData = vocabulary[currentLoc];
+            const theme = themes[currentLoc];
+
+            locData.pills.forEach(pillKey => {
+                const btn = document.createElement('button');
+                btn.id = `pill-${pillKey}`;
+                const isActive = pillKey === currentPill;
+                
+                btn.className = isActive 
+                    ? `pill-btn px-4 py-1.5 rounded-full ${theme.primaryBtn} text-xs font-semibold whitespace-nowrap transition duration-200`
+                    : "pill-btn px-4 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 text-xs font-semibold whitespace-nowrap transition duration-200";
+                
+                btn.innerText = locData.pillsLabels[pillKey] || pillKey;
+                btn.onclick = () => changeSubcategory(pillKey);
+                container.appendChild(btn);
+            });
+        }
+
+        // ----------------------------------------------------
+        // CARD DECKS AND RENDERING
+        // ----------------------------------------------------
+        function updateActiveDeck() {
+            if (currentLoc === 'favorites') {
+                // Compile dynamic deck from all categories
+                let starredItems = [];
+                Object.keys(vocabulary).forEach(loc => {
+                    if (loc !== 'favorites') {
+                        vocabulary[loc].items.forEach(item => {
+                            if (starredWords.has(item.gr)) {
+                                starredItems.push({
+                                    ...item,
+                                    originLoc: loc,
+                                    originLocTitle: vocabulary[loc].title
+                                });
+                            }
+                        });
+                    }
+                });
+                
+                vocabulary.favorites.items = starredItems;
+
+                if (currentPill === 'all') {
+                    activeDeck = [...starredItems];
+                } else {
+                    activeDeck = starredItems.filter(item => item.originLoc === currentPill);
+                }
+            } else {
+                const locData = vocabulary[currentLoc];
+                if (currentPill === 'all') {
+                    activeDeck = [...locData.items];
+                } else {
+                    activeDeck = locData.items.filter(item => item.cat === currentPill);
+                }
+            }
+
+            currentCardIndex = 0;
+            renderCard();
+            renderVocabularyList();
+        }
+
+        function renderCard() {
+            const cardEl = document.getElementById('flashcard');
+            cardEl.classList.remove('flipped');
+
+            if (activeDeck.length === 0) {
+                document.getElementById('card-greek').innerText = "Δεν βρέθηκαν λέξεις";
+                document.getElementById('card-english').innerText = "No words found";
+                document.getElementById('card-tag-front').innerText = "Κενό";
+                document.getElementById('card-tag-back').innerText = "Κενό";
+                document.getElementById('card-index-front').innerText = "0/0";
+                document.getElementById('card-index-back').innerText = "0/0";
+                
+                // Hide stars on empty deck
+                document.getElementById('star-container-front').innerHTML = "";
+                document.getElementById('star-container-back').innerHTML = "";
+                return;
+            }
+
+            const item = activeDeck[currentCardIndex];
+            
+            document.getElementById('card-greek').innerText = item.gr;
+            document.getElementById('card-english').innerText = item.en;
+
+            // Subcategory / Location Tag updates
+            const locTitle = currentLoc === 'favorites' 
+                ? (item.originLocTitle || "Αγαπημένα")
+                : (vocabulary[currentLoc].pillsLabels[item.cat] || item.cat);
+                
+            document.getElementById('card-tag-front').innerText = locTitle;
+            document.getElementById('card-tag-back').innerText = locTitle;
+
+            const countStr = `${currentCardIndex + 1} / ${activeDeck.length}`;
+            document.getElementById('card-index-front').innerText = countStr;
+            document.getElementById('card-index-back').innerText = countStr;
+
+            // Mastered Button styling
+            const mBtn = document.getElementById('mastered-btn');
+            if (masteredWords.has(item.gr)) {
+                mBtn.className = "flex-grow py-3 px-4 bg-emerald-500 text-white hover:bg-emerald-600 rounded-2xl transition shadow-sm font-bold text-sm flex items-center justify-center gap-2";
+                mBtn.querySelector('span').innerText = "Μαθεμένο! ✓";
+            } else {
+                const theme = themes[currentLoc];
+                mBtn.className = `flex-grow py-3 px-4 ${theme.bgLight} ${theme.textLight} border border-${theme.accent}-100 hover:bg-${theme.accent}-100/80 rounded-2xl transition shadow-sm font-bold text-sm flex items-center justify-center gap-2`;
+                mBtn.querySelector('span').innerText = "Το Έμαθα!";
+            }
+
+            // CRITICAL FIX: Custom inline SVGs generated dynamically to avoid Lucide's CSS overriding bug
+            const isStarred = starredWords.has(item.gr);
+            const fillVal = isStarred ? '#f59e0b' : 'none'; // Amber 500 color
+            const strokeVal = isStarred ? '#f59e0b' : 'currentColor';
+            const starSvg = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="${fillVal}" stroke="${strokeVal}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 transition-transform duration-300 hover:scale-110">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+            `;
+            
+            document.getElementById('star-container-front').innerHTML = starSvg;
+            document.getElementById('star-container-back').innerHTML = starSvg;
+
+            // Apply specific class rules for star visibility
+            document.getElementById('star-container-front').className = isStarred ? "text-amber-400" : "text-slate-300 hover:text-amber-400";
+            document.getElementById('star-container-back').className = isStarred ? "text-amber-400" : "text-slate-400 hover:text-amber-400";
+
+            if (document.getElementById('auto-speak').checked) {
+                setTimeout(() => {
+                    speakText(item.gr);
+                }, 200);
+            }
+
+            lucide.createIcons();
+        }
+
+        // ----------------------------------------------------
+        // CARD USER INTERACTIONS
+        // ----------------------------------------------------
+        function flipCard() {
+            const cardEl = document.getElementById('flashcard');
+            cardEl.classList.toggle('flipped');
+        }
+
+        function prevCard() {
+            if (activeDeck.length <= 1) return;
+            currentCardIndex = (currentCardIndex - 1 + activeDeck.length) % activeDeck.length;
+            renderCard();
+        }
+
+        function nextCard() {
+            if (activeDeck.length <= 1) return;
+            currentCardIndex = (currentCardIndex + 1) % activeDeck.length;
+            renderCard();
+        }
+
+        function toggleStar(event) {
+            event.stopPropagation(); // Stop flipping trigger
+            if (activeDeck.length === 0) return;
+            
+            const item = activeDeck[currentCardIndex];
+            if (starredWords.has(item.gr)) {
+                starredWords.delete(item.gr);
+            } else {
+                starredWords.add(item.gr);
+            }
+            
+            saveProgress();
+            
+            if (currentLoc === 'favorites') {
+                updateActiveDeck();
+            } else {
+                renderCard();
+                renderVocabularyList();
+            }
+        }
+
+        function toggleMastered() {
+            if (activeDeck.length === 0) return;
+            const item = activeDeck[currentCardIndex];
+            
+            if (masteredWords.has(item.gr)) {
+                masteredWords.delete(item.gr);
+            } else {
+                masteredWords.add(item.gr);
+            }
+            
+            saveProgress();
+            renderCard();
+            renderVocabularyList();
+        }
+
+        function shuffleCards() {
+            if (activeDeck.length <= 1) return;
+            for (let i = activeDeck.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [activeDeck[i], activeDeck[j]] = [activeDeck[j], activeDeck[i]];
+            }
+            currentCardIndex = 0;
+            renderCard();
+        }
+
+        function speakGreek(event) {
+            event.stopPropagation(); 
+            if (activeDeck.length === 0) return;
+            speakText(activeDeck[currentCardIndex].gr);
+        }
+
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'el-GR';
+                utterance.rate = 0.85;
+
+                const voices = window.speechSynthesis.getVoices();
+                const greekVoice = voices.find(v => v.lang.includes('el'));
+                if (greekVoice) {
+                    utterance.voice = greekVoice;
+                }
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // ----------------------------------------------------
+        // LIST VIEW GENERATION
+        // ----------------------------------------------------
+        function renderVocabularyList() {
+            const container = document.getElementById('full-vocabulary-list');
+            container.innerHTML = '';
+
+            document.getElementById('active-category-count').innerText = `${activeDeck.length} λέξεις`;
+
+            if (activeDeck.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-6 text-slate-400 text-sm">
+                        Δεν βρέθηκαν λέξεις σε αυτή την επιλογή.
+                    </div>
+                `;
+                return;
+            }
+
+            activeDeck.forEach(item => {
+                const isMastered = masteredWords.has(item.gr);
+                const isStarred = starredWords.has(item.gr);
+                const el = document.createElement('div');
+                el.className = `flex justify-between items-center p-3 rounded-2xl border transition duration-150 ${isMastered ? 'bg-emerald-50/40 border-emerald-100 opacity-80' : 'bg-slate-50/50 border-slate-100 hover:shadow-sm'}`;
+                
+                const fillVal = isStarred ? '#f59e0b' : 'none';
+                const strokeVal = isStarred ? '#f59e0b' : 'currentColor';
+                
+                el.innerHTML = `
+                    <div class="space-y-0.5 pr-2 overflow-hidden">
+                        <span class="text-sm font-extrabold text-slate-900 block truncate">${item.gr}</span>
+                        <span class="block text-xs text-slate-400 font-medium truncate">${item.en}</span>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <!-- Sound -->
+                        <button onclick="speakText('${item.gr.replace(/'/g, "\\'")}')" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-white transition" title="Προφορά">
+                            <i data-lucide="volume-2" class="w-4 h-4"></i>
+                        </button>
+                        <!-- Star (CRITICAL FIX: Custom direct SVG Star button) -->
+                        <button onclick="toggleStarDirect('${item.gr.replace(/'/g, "\\'")}')" class="p-1.5 rounded-lg hover:bg-white transition ${isStarred ? 'text-amber-400' : 'text-slate-300 hover:text-amber-400'}" title="Αγαπημένο">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="${fillVal}" stroke="${strokeVal}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                            </svg>
+                        </button>
+                        <!-- Mastered -->
+                        <button onclick="toggleMasteredDirect('${item.gr.replace(/'/g, "\\'")}')" class="p-1.5 rounded-lg hover:bg-white transition ${isMastered ? 'text-emerald-500' : 'text-slate-300 hover:text-emerald-500'}" title="${isMastered ? 'Αφαίρεση από μαθεμένα' : 'Σημείωση ως μαθεμένο'}">
+                            <i data-lucide="check-circle" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(el);
+            });
+
+            lucide.createIcons();
+        }
+
+        function toggleMasteredDirect(greekWord) {
+            if (masteredWords.has(greekWord)) {
+                masteredWords.delete(greekWord);
+            } else {
+                masteredWords.add(greekWord);
+            }
+            saveProgress();
+            renderCard();
+            renderVocabularyList();
+        }
+
+        function toggleStarDirect(greekWord) {
+            if (starredWords.has(greekWord)) {
+                starredWords.delete(greekWord);
+            } else {
+                starredWords.add(greekWord);
+            }
+            saveProgress();
+            
+            if (currentLoc === 'favorites') {
+                updateActiveDeck();
+            } else {
+                renderCard();
+                renderVocabularyList();
+            }
+        }
+
+        // ----------------------------------------------------
+        // STUDY MODES SWITCHING
+        // ----------------------------------------------------
+        function setMode(modeKey) {
+            activeMode = modeKey;
+
+            document.getElementById('mode-cards').className = modeKey === 'cards'
+                ? "flex-1 py-1.5 px-4 text-xs font-bold rounded-lg transition duration-200 bg-white text-slate-800 shadow-sm flex items-center justify-center gap-1.5"
+                : "flex-1 py-1.5 px-4 text-xs font-semibold rounded-lg transition duration-200 text-slate-600 hover:text-slate-800 flex items-center justify-center gap-1.5";
+            
+            document.getElementById('mode-quiz').className = modeKey === 'quiz'
+                ? "flex-1 py-1.5 px-4 text-xs font-bold rounded-lg transition duration-200 bg-white text-slate-800 shadow-sm flex items-center justify-center gap-1.5"
+                : "flex-1 py-1.5 px-4 text-xs font-semibold rounded-lg transition duration-200 text-slate-600 hover:text-slate-800 flex items-center justify-center gap-1.5";
+
+            if (modeKey === 'cards') {
+                document.getElementById('cards-workspace').classList.remove('hidden');
+                document.getElementById('quiz-workspace').classList.add('hidden');
+                renderCard();
+            } else {
+                document.getElementById('cards-workspace').classList.add('hidden');
+                document.getElementById('quiz-workspace').classList.remove('hidden');
+                initQuiz();
+            }
+        }
+
+        // ----------------------------------------------------
+        // DYNAMIC QUIZ SYSTEM
+        // ----------------------------------------------------
+        function initQuiz() {
+            const theme = themes[currentLoc];
+            
+            document.getElementById('quiz-card').classList.remove('hidden');
+            document.getElementById('quiz-results').classList.add('hidden');
+
+            if (activeDeck.length < 4) {
+                document.getElementById('quiz-card').innerHTML = `
+                    <div class="text-center py-8 space-y-4">
+                        <i data-lucide="alert-circle" class="w-12 h-12 text-slate-300 mx-auto"></i>
+                        <p class="text-sm font-semibold text-slate-500">Το παιχνίδι απαιτεί τουλάχιστον 4 λέξεις στην τρέχουσα κατηγορία για να δημιουργήσει επιλογές.</p>
+                        <button onclick="changeSubcategory('all')" class="${theme.primaryBtn} px-4 py-2 rounded-xl text-xs font-bold transition">Προβολή όλων</button>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            document.getElementById('quiz-card').innerHTML = `
+                <div class="flex justify-between items-center border-b border-slate-50 pb-4">
+                    <span id="quiz-progress-label" class="text-xs font-bold text-${theme.accent}-600 uppercase">Ερώτηση 1 από 5</span>
+                    <span id="quiz-score-label" class="text-xs font-bold bg-slate-100 text-slate-700 px-3 py-1 rounded-full">Σκορ: 0%</span>
+                </div>
+                <div class="text-center py-4 space-y-2">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block">Ποια είναι η σωστή μετάφραση;</span>
+                    <h3 id="quiz-question-word" class="text-3xl font-extrabold text-${theme.accent}-950">ερώτηση</h3>
+                </div>
+                <div class="grid grid-cols-1 gap-3" id="quiz-options"></div>
+                <div id="quiz-feedback" class="p-4 rounded-2xl hidden text-sm font-medium flex items-center gap-3"></div>
+                <button onclick="nextQuizQuestion()" id="quiz-next-btn" class="w-full py-3.5 ${theme.primaryBtn} font-bold rounded-2xl transition hidden flex items-center justify-center gap-2">
+                    Επόμενη Ερώτηση <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </button>
+            `;
+
+            quizQuestionsList = [...activeDeck].sort(() => 0.5 - Math.random()).slice(0, 5);
+            quizIndex = 0;
+            quizScore = 0;
+
+            renderQuizQuestion();
+        }
+
+        function renderQuizQuestion() {
+            const currentItem = quizQuestionsList[quizIndex];
+            const theme = themes[currentLoc];
+            
+            document.getElementById('quiz-progress-label').innerText = `Ερώτηση ${quizIndex + 1} από ${quizQuestionsList.length}`;
+            document.getElementById('quiz-progress-label').className = `text-xs font-bold text-${theme.accent}-600 uppercase`;
+            document.getElementById('quiz-score-label').innerText = `Σκορ: ${Math.round((quizScore / (quizIndex || 1)) * 100)}%`;
+            document.getElementById('quiz-question-word').innerText = currentItem.gr;
+            document.getElementById('quiz-question-word').className = `text-3xl font-extrabold text-${theme.accent}-950`;
+
+            let choices = [currentItem.en];
+            const distractors = activeDeck
+                .filter(item => item.gr !== currentItem.gr)
+                .map(item => item.en);
+
+            const shuffledDistractors = distractors.sort(() => 0.5 - Math.random()).slice(0, 3);
+            choices = choices.concat(shuffledDistractors).sort(() => 0.5 - Math.random());
+
+            const container = document.getElementById('quiz-options');
+            container.innerHTML = '';
+
+            choices.forEach(choice => {
+                const btn = document.createElement('button');
+                btn.className = "quiz-opt-btn py-3.5 px-4 text-sm font-bold text-slate-700 border border-slate-200 rounded-2xl hover:bg-slate-50 transition active:scale-[0.98] text-left flex justify-between items-center";
+                btn.innerHTML = `<span>${choice}</span>`;
+                btn.onclick = () => selectQuizOption(btn, choice, currentItem.en);
+                container.appendChild(btn);
+            });
+
+            document.getElementById('quiz-feedback').className = "hidden";
+            
+            const nextBtn = document.getElementById('quiz-next-btn');
+            nextBtn.className = `w-full py-3.5 ${theme.primaryBtn} font-bold rounded-2xl transition hidden flex items-center justify-center gap-2`;
+
+            speakText(currentItem.gr);
+        }
+
+        function selectQuizOption(button, selected, correct) {
+            const buttons = document.querySelectorAll('.quiz-opt-btn');
+            buttons.forEach(btn => btn.disabled = true);
+
+            const feedback = document.getElementById('quiz-feedback');
+            feedback.className = "p-4 rounded-2xl hidden text-sm font-medium flex items-center gap-3";
+
+            if (selected === correct) {
+                button.className = "quiz-opt-btn py-3.5 px-4 text-sm font-bold bg-emerald-100 border-emerald-300 text-emerald-800 rounded-2xl text-left flex justify-between items-center";
+                button.innerHTML += `<i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-600"></i>`;
+                
+                feedback.className = "p-4 rounded-2xl text-sm font-bold bg-emerald-50 text-emerald-800 border border-emerald-100 flex items-center gap-3";
+                feedback.innerHTML = `<i data-lucide="sparkles" class="w-5 h-5 text-emerald-600"></i> Σωστό! Μπράβο σας.`;
+                
+                quizScore += 1;
+                masteredWords.add(quizQuestionsList[quizIndex].gr);
+                saveProgress();
+                renderVocabularyList();
+            } else {
+                button.className = "quiz-opt-btn py-3.5 px-4 text-sm font-bold bg-rose-100 border-rose-300 text-rose-800 rounded-2xl text-left flex justify-between items-center";
+                button.innerHTML += `<i data-lucide="x-circle" class="w-5 h-5 text-rose-600"></i>`;
+
+                feedback.className = "p-4 rounded-2xl text-sm font-bold bg-rose-50 text-rose-800 border border-rose-100 flex items-center gap-3";
+                feedback.innerHTML = `<i data-lucide="alert-triangle" class="w-5 h-5 text-rose-600"></i> Λάθος. Η απάντηση ήταν: <strong class="underline">${correct}</strong>`;
+
+                buttons.forEach(btn => {
+                    if (btn.querySelector('span').innerText === correct) {
+                        btn.className = "quiz-opt-btn py-3.5 px-4 text-sm font-bold bg-emerald-50 border-emerald-200 text-emerald-700 rounded-2xl text-left flex justify-between items-center";
+                    }
+                });
+            }
+
+            document.getElementById('quiz-next-btn').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function nextQuizQuestion() {
+            quizIndex += 1;
+            if (quizIndex < quizQuestionsList.length) {
+                renderQuizQuestion();
+            } else {
+                showQuizResults();
+            }
+        }
+
+        function showQuizResults() {
+            const theme = themes[currentLoc];
+            
+            document.getElementById('quiz-card').classList.add('hidden');
+            document.getElementById('quiz-results').classList.remove('hidden');
+            
+            const scoreLabel = document.getElementById('quiz-final-score');
+            scoreLabel.innerText = `${quizScore} / ${quizQuestionsList.length}`;
+            scoreLabel.className = `text-4xl font-black text-${theme.accent}-600 block mt-1`;
+
+            const trophyContainer = document.getElementById('quiz-trophy-container');
+            trophyContainer.className = `w-20 h-20 ${theme.bgLight} ${theme.textLight} rounded-full flex items-center justify-center mx-auto shadow-inner`;
+
+            const replayBtn = document.getElementById('quiz-replay-btn');
+            replayBtn.className = `w-full max-w-xs py-3.5 ${theme.primaryBtn} font-bold rounded-2xl transition shadow-md`;
+        }
+
+        function restartQuiz() {
+            initQuiz();
+        }
+
+        // ----------------------------------------------------
+        // SYSTEM INIT
+        // ----------------------------------------------------
+        window.onload = function() {
+            loadProgress();
+            changeLocation('climate'); // Default landing
+        }
+    </script>
+</body>
+</html>
